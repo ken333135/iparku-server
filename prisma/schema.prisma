@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model Product {
+  id Int @default(autoincrement()) @id
+  title String
+  description String
+  price Float
+}
+
+model Carpark {
+  car_park_no String @unique @id 
+  address String
+  x_coord Float
+  y_coord Float
+  car_park_type String
+  type_of_parking_system String
+  short_term_parking String
+  free_parking Boolean
+  night_parking Boolean
+  car_park_decks Int
+  gantry_height Float
+  car_park_basement Boolean
+  central Boolean
+  rates Rate[]
+}
+
+model Rate {
+  id Int @default(autoincrement()) @id
+  carpark Carpark? @relation(fields: [car_park_no], references: [car_park_no])
+  car_park_no String
+  pricing Float
+  from DateTime 
+  to DateTime
+}
