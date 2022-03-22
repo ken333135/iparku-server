@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import moment = require("moment");
+import * as moment from "moment";
+const fs = require('fs');
+const csv = require('csv-parser');
 
 const prisma = new PrismaClient();
 
@@ -33,6 +35,7 @@ const carparks = [{
     central: false
 }]
 
+
 const rates = [{
     car_park_no: 'ACB',
     pricing: 0.6,
@@ -55,17 +58,59 @@ const rates = [{
     to: moment('19:00', "HH:mm").toDate(),
 }]
 
+const lots = [{
+    car_park_no: 'ACB',
+    total_lots: 50,
+    lot_type: 'C',
+    lots_available: 37,
+    update_datetime: new Date()
+}]
+
 async function main() {
 
     console.log('Seeding...');
-    await prisma.carpark.deleteMany({ where: {} })
-    await prisma.rate.deleteMany({ where: {} })
 
-    /// --------- Carpark ---------------
-    await prisma.carpark.createMany({ data: carparks })
+    // await prisma.rate.deleteMany({ where: {} })
+    // await prisma.carpark.deleteMany({ where: {} })
+    // await prisma.lots.deleteMany({ where: {} })
+
+    // // --------- Carpark ---------------
+    // await prisma.carpark.createMany({ data: carparks })
+    // const carparks = []
+
+    // await fs.createReadStream('./prisma/HDB_Carpark.csv')
+    // .pipe(csv())
+    // .on('data', async (row) => {
+    //     row.x_coord = parseFloat(row.x_coord)
+    //     row.y_coord = parseFloat(row.y_coord)
+    //     row.night_parking = row.night_parking === 'YES' ? true : false
+    //     carparks.push(row)
+    // })
+    // .on('end', async () => {
+    //     console.log('CSV file successfully processed');
+    //     await prisma.carpark.createMany({ data: carparks })
+    // });
     
-    /// --------- Rate ---------------
-    await prisma.rate.createMany({ data: rates })
+    // // --------- Rate ---------------
+    // await prisma.rate.createMany({ data: rates })
+
+    // // --------- Lots ---------------
+    // await prisma.lots.createMany({ data: lots })
+
+     // // --------- Zipcodes ---------------
+    //  const zipcodes = []
+
+    //  await fs.createReadStream('./prisma/zipcodes.csv')
+    //  .pipe(csv())
+    //  .on('data', async (row) => {
+    //      zipcodes.push(row)
+    //  })
+    //  .on('end', async () => {
+    //      console.log('CSV file successfully processed');
+    //      await prisma.zipcode.createMany({ data: zipcodes })
+    //  });
+
+   
 
 }
 

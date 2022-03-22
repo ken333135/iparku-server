@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
  */
 import { ProductsModule } from './products/products.module';
 import { CarparkModule } from './carpark/carpark.module';
+import { ZipcodeModule } from './zipcode/zipcode.module';
 
 /**
  * Services
@@ -13,7 +14,7 @@ import { CarparkModule } from './carpark/carpark.module';
 import { AppService } from './app.service';
 
 @Module({
-  imports: [ProductsModule, CarparkModule],
+  imports: [ProductsModule, CarparkModule, ZipcodeModule],
   controllers: [AppController],
   providers: [AppService],
 })

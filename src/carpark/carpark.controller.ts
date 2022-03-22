@@ -1,5 +1,5 @@
 import { Controller, 
-    Get, Logger, Query } from '@nestjs/common';
+    Get, Logger, Param, Query } from '@nestjs/common';
 import { response } from 'express';
 import { CarparkService } from './carpark.service';
 
@@ -20,29 +20,54 @@ export class CarparkController {
                 parsed_y_coord = parseFloat(y_coord),
                 parsed_radius = parseFloat(radius);
 
-                
-            Logger.log({
-                x_coord,
-                y_coord,
-                radius,
-                parsed_x_coord,
-                parsed_y_coord,
-                parsed_radius
-            })
-
-            const nearbyCarparks = await this.carparkService.getCarPark(
+            let nearbyCarparks = await this.carparkService.getCarPark(
                 parsed_x_coord,
                 parsed_y_coord,
                 parsed_radius
             )
 
-            Logger.log({nearbyCarparks})
+            const car_park_nos = nearbyCarparks.map(_carpark => _carpark.car_park_no)
 
-            const avail = await this.carparkService.getCarparkAvailabilityData()
+            /* Find available lots data */
+            const avail = await this.carparkService.getCarParkLotsByIds(car_park_nos)
+            const availDict = avail.reduce((acc,cur) => {
+                acc[cur.car_park_no] = cur
+                return acc
+            },{})
 
-            Logger.log(JSON.stringify(avail,null,2))
+            /* Append available lots data */
+            nearbyCarparks = nearbyCarparks.map(_carpark => {
+
+                const total_lots = availDict[_carpark.car_park_no]?.total_lots
+                const lots_available = availDict[_carpark.car_park_no]?.lots_available
+
+                const tempCarpark = {
+                    ..._carpark,
+                    total_lots,
+                    lots_available
+                }
+
+                return tempCarpark
+            })
 
             return nearbyCarparks
+        }
+        catch(e) {
+            Logger.error(e)
+        }
+    }
+
+    @Get('/lots/:car_park_no')
+    async getLots(
+        @Param('car_park_no') car_park_no: string
+    ): Promise<any> {
+
+        try {
+
+            const lots = await this.carparkService.getCarParkLotsByIds([car_park_no])
+
+            return lots
+
         }
         catch(e) {
             Logger.error(e)

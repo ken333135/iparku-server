@@ -10,36 +10,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Product {
-  id Int @default(autoincrement()) @id
-  title String
+  id          Int    @id @default(autoincrement())
+  title       String
   description String
-  price Float
+  price       Float
 }
 
 model Carpark {
-  car_park_no String @unique @id 
-  address String
-  x_coord Float
-  y_coord Float
-  car_park_type String
-  type_of_parking_system String
-  short_term_parking String
-  free_parking Boolean
+  car_park_no   String @id @unique
+  address       String
+  x_coord       Float
+  y_coord       Float
   night_parking Boolean
-  car_park_decks Int
-  gantry_height Float
-  car_park_basement Boolean
-  central Boolean
-  rates Rate[]
+  rates          Rate[]
 }
 
 model Rate {
-  id Int @default(autoincrement()) @id
-  carpark Carpark? @relation(fields: [car_park_no], references: [car_park_no])
+  id          Int      @id @default(autoincrement())
+  carpark     Carpark? @relation(fields: [car_park_no], references: [car_park_no])
   car_park_no String
-  pricing Float
-  from DateTime 
-  to DateTime
+  pricing     Float
+  from        DateTime
+  to          DateTime
+}
+
+model Lots {
+  id              Int      @id @default(autoincrement())
+  car_park_no     String
+  total_lots      Int
+  lots_available  Int
+  lot_type        String
+  update_datetime DateTime
+}
+
+model Zipcode {
+  id         Int    @id @default(autoincrement())
+  postal     String
+  latitude   String
+  longtitude String
+  searchval  String
+  blk_no     String
+  road_name  String
+  building   String
+  address    String
 }

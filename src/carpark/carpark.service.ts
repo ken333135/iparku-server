@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-const axios = require('axios');
+import * as moment from "moment";
+import axios  from 'axios';
 
 import { Carpark } from '@prisma/client';
 
@@ -23,6 +24,10 @@ export class CarparkService {
             xMax = x_coord + radiusInDeg,
             yMin = y_coord - radiusInDeg,
             yMax = y_coord + radiusInDeg;
+
+        Logger.log({
+            xMin, xMax, yMin, yMax
+        })
 
         // Finds all carparks within radius
         let carparks = await this.prisma.carpark.findMany({
@@ -60,14 +65,80 @@ export class CarparkService {
 
     }
 
+    async getCarParkLotsByIds(car_park_nos: string[]) {
+
+        console.log({car_park_nos})
+
+        // Check for data in postgres
+        let lots = await this.prisma.lots.findMany({
+            where: {
+                car_park_no: { in: car_park_nos }
+            }
+        })
+
+        Logger.log({lots})
+
+        const TEN_MIN = 10 * 60 * 1000;
+        const now:any = new Date()
+        const update_datetime:any = lots.length > 0 && new Date(lots[0].update_datetime)
+
+        // If lots data not found or too outdated
+        // Pull new data from API
+        if (lots.length == 0 || (now - update_datetime > TEN_MIN )) {
+            Logger.log("going to get avail data")
+            await this.getCarparkAvailabilityData()
+            lots = await this.prisma.lots.findMany({
+                where: {
+                    car_park_no: { in: car_park_nos }
+                }
+            })
+        }
+
+
+        return lots
+    }
+
     async getCarparkAvailabilityData(): Promise<any> {
 
+        // Check for data in postgres
+       
         const carparkAvailability = await axios({
             method: 'get',
             url: 'https://api.data.gov.sg/v1/transport/carpark-availability',
         })
 
-        return carparkAvailability.data
+        if (carparkAvailability) {
+            // Logger.log({ data: carparkAvailability.data.items })
+            // Logger.log({ data: carparkAvailability.data.items[0].carpark_data[0] })
+        }
+
+        // If data exists
+        if (carparkAvailability.data.items[0].carpark_data[0]) {
+            // delete all old data
+            await this.prisma.lots.deleteMany({
+                where: {}
+            })
+
+            Logger.log("after elete")
+            const lots = carparkAvailability.data.items[0].carpark_data.map(_data => {
+                return {
+                    car_park_no: _data.carpark_number,
+                    total_lots: parseInt(_data.carpark_info[0].total_lots),
+                    lot_type: _data.carpark_info[0].lot_type,
+                    lots_available: parseInt(_data.carpark_info[0].lots_available),
+                    update_datetime: moment(_data.update_datetime).toDate()
+                }
+            })
+
+            // Logger.log({lots})
+
+            // add new data
+            await this.prisma.lots.createMany({ 
+                data: lots
+            })
+        }
+
+        return
 
     }
 
