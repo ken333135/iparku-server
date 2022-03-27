@@ -45,29 +45,59 @@ export class CarparkService {
                 rates: true
             }
         })
-        
-        // Sorts carpark by pythagorean distance desc 
-        carparks = carparks.sort((a,b) => {
 
-            const a_pythagorean_distance =  ( ( x_coord - a.x_coord ) ** 2  + ( y_coord - a.y_coord ) ** 2 ) ** 0.5 
-            const b_pythagorean_distance =  ( ( x_coord - b.x_coord ) ** 2  + ( y_coord - b.y_coord ) ** 2 ) ** 0.5 
+        let carparksWithDistance: any[] = carparks.map(_carpark => {
+            const newCarpark = {
+                ..._carpark,
+                distance: ( ( x_coord - _carpark.x_coord ) ** 2  + ( y_coord - _carpark.y_coord ) ** 2 ) ** 0.5
+            }
+            return newCarpark
+        }).sort((a,b) => {
 
-            if (b_pythagorean_distance - a_pythagorean_distance < 0) { 
+            if (b.distance - a.distance < 0 ) {
                 return 1
             }
-            if (b_pythagorean_distance - a_pythagorean_distance > 0) { 
+            if (b.distance - a.distance > 0 ) {
                 return -1
             }
             return 0
-        })  
 
-        return carparks
+        })
+        
+
+        const postgresDateTime = moment().set('month', 0).set('date', 1).add(8, 'hour').toDate()
+
+        /* Clean ratesn data for each lot */
+        carparksWithDistance = carparksWithDistance.map(_carpark => {
+            const rates = _carpark.rates
+            /* if no rates then return */
+            if (rates.length === 0) { return _carpark }
+            /* find the correct rates if multiple rates present */
+            const filteredRates = rates.filter(_rate => {
+                return moment(_rate.from).isBefore(moment(postgresDateTime))
+            }).sort((a,b) => {
+
+                if (moment(b.from).isBefore(a.from)) {
+                    return 1
+                }
+                if (moment(b.from).isAfter(a.from)) {
+                    return -1
+                }
+                return 0
+    
+            })[0]
+            
+            _carpark.rates = filteredRates
+            return _carpark
+        })
+        
+        
+
+        return carparksWithDistance
 
     }
 
     async getCarParkLotsByIds(car_park_nos: string[]) {
-
-        console.log({car_park_nos})
 
         // Check for data in postgres
         let lots = await this.prisma.lots.findMany({
@@ -75,8 +105,6 @@ export class CarparkService {
                 car_park_no: { in: car_park_nos }
             }
         })
-
-        Logger.log({lots})
 
         const TEN_MIN = 10 * 60 * 1000;
         const now:any = new Date()
@@ -94,8 +122,50 @@ export class CarparkService {
             })
         }
 
-
         return lots
+    }
+
+    async getCarparkRates(car_park_nos: string[]) {
+
+        const now = moment().set('month',0).set('date',1).add(8, 'hour').toDate()
+        
+        // Get rates data
+        const rates = await this.prisma.rate.findMany({
+            where: {
+                car_park_no: { in: car_park_nos },
+                from: {
+                    lte: now
+                },
+                // to: {
+                //     gte: now
+                // }
+            },
+    
+        })
+
+        return rates
+
+    }
+
+    async getCarparkRate(car_park_no: string) {
+
+        const now = moment().set('month',0).set('date',1).add(8, 'hour').toDate()
+        
+        // Get rates data
+        const rate = await this.prisma.rate.findFirst({
+            where: {
+                car_park_no: car_park_no,
+                from: {
+                    lte: now
+                },
+            },
+            orderBy: {
+                from: 'desc'
+            }
+        })
+
+        return rate
+
     }
 
     async getCarparkAvailabilityData(): Promise<any> {
