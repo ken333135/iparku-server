@@ -94,6 +94,27 @@ async function main() {
     // // --------- Rate ---------------
     // await prisma.rate.createMany({ data: rates })
 
+    // const rates = []
+
+    // await fs.createReadStream('./prisma/rates.csv')
+    // .pipe(csv())
+    // .on('data', async (row) => {
+
+    //     const data = {
+    //         car_park_no: row.car_park_no,
+    //         pricing: parseFloat(row.Pricing),
+    //         // from: moment(row.From,"HH:mm:ss").set('month',1).set('date',1).format("YYYY-MM-DD HH:mm"),
+    //         // to: moment(row.To,"HH:mm:ss").set('month',1).set('date',1).format("YYYY-MM-DD HH:mm"),
+    //         from: moment.utc(row.From,"HH:mm:ss").set('month',0).set('date',1).toDate(),
+    //         to: moment.utc(row.To,"HH:mm:ss").set('month',0).set('date',1).toDate(),
+    //     }
+    //     rates.push(data)
+    // })
+    // .on('end', async () => {
+    //     console.log('CSV file successfully processed');
+    //     await prisma.rate.createMany({ data: rates })
+    // });
+
     // // --------- Lots ---------------
     // await prisma.lots.createMany({ data: lots })
 

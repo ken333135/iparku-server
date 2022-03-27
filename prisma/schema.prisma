@@ -23,7 +23,7 @@ model Carpark {
   x_coord       Float
   y_coord       Float
   night_parking Boolean
-  rates          Rate[]
+  rates         Rate[]
 }
 
 model Rate {
