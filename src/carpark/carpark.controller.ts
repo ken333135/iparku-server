@@ -20,13 +20,30 @@ export class CarparkController {
                 parsed_y_coord = parseFloat(y_coord),
                 parsed_radius = parseFloat(radius);
 
-            let nearbyCarparks = await this.carparkService.getCarPark(
+            /* Public Carpark */
+            const nearbyCarparks = await this.carparkService.getCarPark(
+                parsed_x_coord,
+                parsed_y_coord,
+                parsed_radius + 100.0
+            )
+
+            /* Private Carpark */
+            const nearbyCarparkPrivate = await this.carparkService.getCarParkPrivate(
                 parsed_x_coord,
                 parsed_y_coord,
                 parsed_radius
             )
 
-            const car_park_nos = nearbyCarparks.map(_carpark => _carpark.car_park_no)
+            console.log({
+                nearbyCarparks: nearbyCarparks.length,
+                nearbyCarparksPrivate: nearbyCarparkPrivate.length
+            })
+
+            let combinedCarparks = [...nearbyCarparks, ...nearbyCarparkPrivate]
+
+            const car_park_nos = combinedCarparks
+            .map(_carpark => _carpark.car_park_no)
+            .filter(_carpark => _carpark)
 
             /* Find available lots data */
             const avail = await this.carparkService.getCarParkLotsByIds(car_park_nos)
@@ -36,7 +53,7 @@ export class CarparkController {
             },{})
 
             /* Append available lots data */
-            nearbyCarparks = nearbyCarparks.map(_carpark => {
+            combinedCarparks = combinedCarparks.map(_carpark => {
 
                 const total_lots = availDict[_carpark.car_park_no]?.total_lots
                 const lots_available = availDict[_carpark.car_park_no]?.lots_available
@@ -50,7 +67,7 @@ export class CarparkController {
                 return tempCarpark
             })
 
-            return nearbyCarparks
+            return combinedCarparks
         }
         catch(e) {
             Logger.error(e)

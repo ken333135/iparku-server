@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma.service';
 import * as moment from "moment";
 import axios  from 'axios';
 
-import { Carpark } from '@prisma/client';
+import { Carpark, CarparkPrivate } from '@prisma/client';
 
 @Injectable()
 export class CarparkService {
@@ -17,6 +17,50 @@ export class CarparkService {
 
     }
 
+    async getCarParkPrivate(x_coord: number, y_coord: number, radius: number): Promise<CarparkPrivate[]> {
+
+        const radiusInDeg = radius;    
+        const xMin = x_coord - radiusInDeg,
+            xMax = x_coord + radiusInDeg,
+            yMin = y_coord - radiusInDeg,
+            yMax = y_coord + radiusInDeg;
+    
+        // Finds all carparks within radius
+        const carparksPrivate = await this.prisma.carparkPrivate.findMany({
+            where: {
+                x_coord: {
+                    gte: xMin,
+                    lte: xMax
+                },
+                y_coord: {
+                    gte: yMin,
+                    lte: yMax
+                },
+            }
+        })
+
+        const carparksPrivateWithDistance: any[] = carparksPrivate.map(_carpark => {
+            const newCarpark = {
+                ..._carpark,
+                distance: ( ( x_coord - _carpark.x_coord ) ** 2  + ( y_coord - _carpark.y_coord ) ** 2 ) ** 0.5
+            }
+            return newCarpark
+        }).sort((a,b) => {
+
+            if (b.distance - a.distance < 0 ) {
+                return 1
+            }
+            if (b.distance - a.distance > 0 ) {
+                return -1
+            }
+            return 0
+
+        })
+
+        return carparksPrivateWithDistance
+
+    }
+
     async getCarPark(x_coord: number, y_coord: number, radius: number): Promise<Carpark[]> {
 
         const radiusInDeg = radius;    
@@ -24,10 +68,6 @@ export class CarparkService {
             xMax = x_coord + radiusInDeg,
             yMin = y_coord - radiusInDeg,
             yMax = y_coord + radiusInDeg;
-
-        Logger.log({
-            xMin, xMax, yMin, yMax
-        })
 
         // Finds all carparks within radius
         let carparks = await this.prisma.carpark.findMany({
@@ -115,6 +155,7 @@ export class CarparkService {
         if (lots.length == 0 || (now - update_datetime > TEN_MIN )) {
             Logger.log("going to get avail data")
             await this.getCarparkAvailabilityData()
+            await this.getCarparkPrivateAvailabilityData()
             lots = await this.prisma.lots.findMany({
                 where: {
                     car_park_no: { in: car_park_nos }
@@ -168,6 +209,62 @@ export class CarparkService {
 
     }
 
+    async getCarparkPrivateAvailabilityData(): Promise<any> {
+
+        /* Get new Token */
+        const token = await axios({
+            method: 'get',
+            url: 'https://www.ura.gov.sg/uraDataService/insertNewToken.action',
+            headers: {
+                'AccessKey': 'da02f9a0-5928-4075-93fb-d80ec54c5f71',
+                'Token': '4G87fju3xMG-75fd75KeNfGH9Hnn94KsME04V2-1bUXa4@X-dM--9b73jw@T8dN2RXSGcW7qn70-T907rM5r904cX0hSk-h5UNx9'
+            }
+        })
+        const result = token.data.Result
+
+        /* Get available lots from URA */
+        const dataResponse = await axios({
+            method: 'get',
+            url: 'https://www.ura.gov.sg/uraDataService/invokeUraDS?service=Car_Park_Availability',
+            headers: {
+                'AccessKey': 'da02f9a0-5928-4075-93fb-d80ec54c5f71',
+                'Token': result
+            }
+        })
+
+        const getCarparkPrivateAvailabilityData = dataResponse.data.Result
+
+        // If data exists
+        if (getCarparkPrivateAvailabilityData) {
+
+            const carparkListToDelete = getCarparkPrivateAvailabilityData.map(_c => _c.car_park_no)
+
+            // delete all old data
+            await this.prisma.lots.deleteMany({
+                where: { 
+                    car_park_no: { in: carparkListToDelete }
+                }
+            })
+
+            const lots = getCarparkPrivateAvailabilityData.map(_data => {
+                return {
+                    car_park_no: _data.carparkNo,
+                    // total_lots: parseInt(_data.carpark_info[0].total_lots),
+                    lot_type: _data.lotType,
+                    lots_available: parseInt(_data.lotsAvailable),
+                    update_datetime: moment().toDate()
+                }
+            })
+
+            // add new data
+            await this.prisma.lots.createMany({ 
+                data: lots
+            })
+        }
+
+        return
+    }
+
     async getCarparkAvailabilityData(): Promise<any> {
 
         // Check for data in postgres
@@ -177,16 +274,15 @@ export class CarparkService {
             url: 'https://api.data.gov.sg/v1/transport/carpark-availability',
         })
 
-        if (carparkAvailability) {
-            // Logger.log({ data: carparkAvailability.data.items })
-            // Logger.log({ data: carparkAvailability.data.items[0].carpark_data[0] })
-        }
-
         // If data exists
         if (carparkAvailability.data.items[0].carpark_data[0]) {
+
+            const carparkListToDelete = carparkAvailability.data.items[0].carpark_data.map(_data => _data.carpark_number )
             // delete all old data
             await this.prisma.lots.deleteMany({
-                where: {}
+                where: { 
+                    car_park_no: { in: carparkListToDelete }
+                }
             })
 
             Logger.log("after elete")

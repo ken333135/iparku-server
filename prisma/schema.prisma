@@ -30,16 +30,31 @@ model Rate {
   id          Int      @id @default(autoincrement())
   carpark     Carpark? @relation(fields: [car_park_no], references: [car_park_no])
   car_park_no String
-  pricing     Float
+  weekday_rate String
+  sat_rate    String
+  sun_rate    String
   from        DateTime
   to          DateTime
+}
+
+model CarparkPrivate {
+  name      String @id @unique
+  car_park_no   String
+  address   String
+  weekday_before_5 String
+  weekday_after_5 String
+  sat String
+  sun String
+  postal String
+  x_coord Float
+  y_coord Float
 }
 
 model Lots {
   id              Int      @id @default(autoincrement())
   car_park_no     String
-  total_lots      Int
-  lots_available  Int
+  total_lots      Int?
+  lots_available  Int 
   lot_type        String
   update_datetime DateTime
 }
