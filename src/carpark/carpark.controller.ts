@@ -52,16 +52,21 @@ export class CarparkController {
                 return acc
             },{})
 
-            /* Append available lots data */
-            combinedCarparks = combinedCarparks.map(_carpark => {
+            /* Find predicted availability */
+            const predictedDict = await this.carparkService.getCarparksPredictedAvailability(car_park_nos)
+
+             /* Append available lots data and availabity data */
+             combinedCarparks = combinedCarparks.map(_carpark => {
 
                 const total_lots = availDict[_carpark.car_park_no]?.total_lots
                 const lots_available = availDict[_carpark.car_park_no]?.lots_available
+                const predicted_availability = predictedDict[_carpark.car_park_no]
 
                 const tempCarpark = {
                     ..._carpark,
                     total_lots,
-                    lots_available
+                    lots_available,
+                    predicted_availability
                 }
 
                 return tempCarpark

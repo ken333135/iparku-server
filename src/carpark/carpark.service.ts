@@ -308,6 +308,64 @@ export class CarparkService {
 
     }
 
+    async getCarparksPredictedAvailability(car_park_nos: string[]): Promise<any> {
+
+        const predictedAvailability = await Promise.all(car_park_nos.map(async car_park_no => {
+            const availability = await this.getCarparkPredictedAvailability(car_park_no)
+            return { 
+                car_park_no: car_park_no,
+                predictedAvailability: availability
+            }
+        }))
+
+        const predictedDict = predictedAvailability.reduce((acc,cur) => {
+            acc[cur.car_park_no] = cur.predictedAvailability
+            return acc
+        },{})
+
+        return predictedDict
+
+    }
+
+
+
+    async getCarparkPredictedAvailability(car_park_no: string): Promise<any> {
+
+        const bucket_name = 'carpark-api-buckets-2022'
+        const key =  'conversion/conversion.csv'
+        const hour = moment().hour()
+
+        const data = {
+            'accesskey': 'AKIA345RDVV2CUWRW2O3',
+            'secretkey': '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', 
+            'bucket':bucket_name,
+            'key':key ,
+            'car_park_no': car_park_no, 
+            'hour': hour
+        }
+
+        const headers = {
+            'Content-type': "application/json",
+        }
+
+        try {
+            const predictedAvailability = await axios({
+                method: 'post',
+                url: "https://f9r60nazuk.execute-api.us-east-1.amazonaws.com/dev/predict",
+                headers,
+                data,
+            })
+
+            console.log({predictedAvailability: predictedAvailability.data})
+            return predictedAvailability.data
+
+        }
+        catch(e) {
+            return 9999
+        }
+   
+    }
+
 
 
 }
