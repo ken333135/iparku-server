@@ -356,7 +356,6 @@ export class CarparkService {
                 data,
             })
 
-            console.log({predictedAvailability: predictedAvailability.data})
             return predictedAvailability.data
 
         }
