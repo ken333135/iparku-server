@@ -336,8 +336,8 @@ export class CarparkService {
         const hour = moment().hour()
 
         const data = {
-            'accesskey': 'AKIA345RDVV2CUWRW2O3',
-            'secretkey': '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', 
+            'accesskey': process.env.ACCESS_KEY,
+            'secretkey': process.env.SECRET_KEY, 
             'bucket':bucket_name,
             'key':key ,
             'car_park_no': car_park_no, 
